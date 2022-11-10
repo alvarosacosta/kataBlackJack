@@ -51,7 +51,7 @@ public class BlackJackTest{
     }
     
     @Test
-    public void is_bust_with_threen_cards(){
+    public void is_bust_with_four_cards(){
         assertEquals(true, createHand(Ace, Queen, King, _2).isBust());
     }
 
@@ -60,7 +60,7 @@ public class BlackJackTest{
 
             @Override
             public int value() {
-                return isStupid() ? sum() - 10 : sum();
+                return canUseExtendAce() ? sum() + 10 : sum();
             }
 
             private int sum() {
@@ -70,8 +70,8 @@ public class BlackJackTest{
                 return sum;
             }
 
-            private boolean isStupid() {
-                return isAce() && sum() > 21 ? true : false;
+            private boolean canUseExtendAce() {
+                return isAce() && sum() <= 11 ? true : false;
             }
 
             private boolean isAce() {
@@ -103,10 +103,10 @@ public class BlackJackTest{
     }
     
     public enum Card {
-        _2, _3, _4, _5, _6, _7, _8, _9, _10, Ace, Queen, King, Jack;
+        Ace, _2, _3, _4, _5, _6, _7, _8, _9, _10, Queen, King, Jack;
         
         private int value() {
-            return isFace() ? 10 : ordinal() + 2;
+            return isFace() ? 10 : ordinal() + 1;
         }
         
         private boolean isFace() {
