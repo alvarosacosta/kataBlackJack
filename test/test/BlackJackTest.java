@@ -1,6 +1,8 @@
 package test;
 
 import java.lang.reflect.Array;
+import java.util.ArrayList;
+import org.junit.Assert;
 import org.junit.Test;
 
 import static test.BlackJackTest.Card.*;
@@ -59,14 +61,13 @@ public class BlackJackTest{
     @Test
     public void who_wins(){
         
-        assertEquals("Player1", createGame(createDeck(Ace, _3, King, _2), createHand("Player1", _10, King), 
-                createHand("Player2", _10, _2, _6), createHand("Player3", _8, _8, _5), 
-                createHand("Croupier", _5, _10)).getWinners());
-        
-        assertEquals("Player1", createGame(createDeck(_5, _4, King, _2), createHand("Player1", Jack, Ace), 
+        Assert.assertArrayEquals(new String[]{"Player1"}, createGame(createDeck(_5, _4, King, _2), createHand("Player1", Jack, Ace), 
                 createHand("Player2", _10, _5, _6), createHand("Player3", _3, _6, Ace, _3, Ace, King), 
                 createHand("Croupier", _9, _7)).getWinners());
         
+        Assert.assertArrayEquals(new String[]{"Player1", "Player3"}, createGame(createDeck(Ace, _3, King, _2), createHand("Player1", _10, King), 
+                createHand("Player2", _10, _2, _6), createHand("Player3", _8, _8, _5), 
+                createHand("Croupier", _5, _10)).getWinners());
     }
 
     private Hand createHand(String name, Card... cards) {
@@ -76,19 +77,22 @@ public class BlackJackTest{
             public int value() {
                 return canUseExtendAce() ? sum() + 10 : sum();
             }
-
-            private int sum() {
+            
+            @Override
+            public int sum() {
                 int sum = 0;
                 for (Card card : cards)
                     sum += card.value();
                 return sum;
             }
-
-            private boolean canUseExtendAce() {
+            
+            @Override
+            public boolean canUseExtendAce() {
                 return isAce() && sum() <= 11 ? true : false;
             }
-
-            private boolean isAce() {
+            
+            @Override
+            public boolean isAce() {
                 for (Card card : cards)
                     if(card == Ace){
                         return true;
@@ -119,6 +123,9 @@ public class BlackJackTest{
         public boolean isBlackJack();
         public boolean isBust();
         public String name();
+        public boolean isAce();
+        public boolean canUseExtendAce();
+        public int sum();
 
     }
     
@@ -137,17 +144,27 @@ public class BlackJackTest{
     
     private Game createGame(Deck deck, Hand... players){
         return new Game(){
+            
             @Override
-            public String getWinners() {
+            public String[] getWinners() {
+                ArrayList<String> winners = new ArrayList<>();
+                        
                 if (croupierHasBlackJack()){
-                    return "Croupier";
+                    return new String[]{"Croupier"};
                 }
                 
-                return "Player1";
+                for (Hand player : players) {
+                    if ((player.value() > getCroupierGameValue() && player.value() <= 21) || player.isBlackJack())
+                        winners.add(player.name());
+                }
+                
+                String[] result = new String[winners.size()];
+                return winners.toArray(result);
                 
             }
-
-            private Hand getCroupier() {
+            
+            @Override
+            public Hand getCroupier() {
                 for (Hand hand : players) {
                     if (hand.name().equals("Croupier")) {
                         return hand;
@@ -155,26 +172,65 @@ public class BlackJackTest{
                 }
                 return null;
             }
-
-            private boolean croupierHasBlackJack() {
+            
+            @Override
+            public boolean croupierHasBlackJack() {
                 return getCroupier().isBlackJack() ? true : false;
+            }
+            
+            @Override
+            public int getCroupierGameValue(){
+                int value = getCroupier().value();
+                
+                
+                while (value < 17){
+                    Card newc = deck.getOneCard();
+                    
+                    if (newc == Ace && value <= 10)
+                        value = value + newc.value() + 10;
+                    else
+                        value = value + newc.value();
+                        
+                }
+                
+                deck.reload();
+                return value;
+                
             }
             
         };
     }
     
     public interface Game {
-        public String getWinners();
+        public String[] getWinners();
+        public boolean croupierHasBlackJack();
+        public int getCroupierGameValue();
+        public Hand getCroupier();
     }
     
     private Deck createDeck(Card... cards){
         return new Deck(){
+            int helper = 0;
             
+            @Override
+            public Card getOneCard() {
+                Card result = cards[helper];
+                helper++;
+                
+                return result;
+            }
+
+            @Override
+            public void reload() {
+                helper = 0;
+            }
+             
         };
     }
     
     public interface Deck {
-        
+        public void reload();
+        public Card getOneCard();
     }
       
 }
